@@ -26,7 +26,7 @@ type SearchResult struct {
 }
 
 // SearchTMDB searches TMDB for movies or TV shows
-func SearchTMDB(query, mediaType, apiKey string) ([]SearchResult, error) {
+func SearchTMDB(query, mediaType, apiKey string, page int) ([]SearchResult, int, error) {
 	baseURL := "https://api.themoviedb.org/3/search/"
 	if mediaType != "movie" && mediaType != "tv" {
 		mediaType = "movie"
@@ -37,24 +37,25 @@ func SearchTMDB(query, mediaType, apiKey string) ([]SearchResult, error) {
 	params.Set("api_key", apiKey)
 	params.Set("query", query)
 	params.Set("language", "en-US")
-	params.Set("page", "1")
+	params.Set("page", fmt.Sprintf("%d", page))
 
 	fullURL := endpoint + "?" + params.Encode()
 	resp, err := http.Get(fullURL)
 	if err != nil {
-		return nil, err
+		return nil, 1, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("TMDB API error: %s", resp.Status)
+		return nil, 1, fmt.Errorf("TMDB API error: %s", resp.Status)
 	}
 
 	var tmdbResp struct {
-		Results []SearchResult `json:"results"`
+		Results    []SearchResult `json:"results"`
+		TotalPages int            `json:"total_pages"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&tmdbResp); err != nil {
-		return nil, err
+		return nil, 1, err
 	}
 
 	// Set MediaType for each result
@@ -62,7 +63,7 @@ func SearchTMDB(query, mediaType, apiKey string) ([]SearchResult, error) {
 		tmdbResp.Results[i].MediaType = mediaType
 	}
 
-	return tmdbResp.Results, nil
+	return tmdbResp.Results, tmdbResp.TotalPages, nil
 }
 
 func FetchTMDBData() error {
@@ -96,7 +97,7 @@ func FetchTMDBDetails(id, mediaType, apiKey string) (map[string]interface{}, err
 }
 
 // FetchTMDBTrending fetches trending movies or TV shows from TMDB
-func FetchTMDBTrending(mediaType, apiKey string) ([]SearchResult, error) {
+func FetchTMDBTrending(mediaType, apiKey string, page int) ([]SearchResult, int, error) {
 	if mediaType != "movie" && mediaType != "tv" {
 		mediaType = "movie"
 	}
@@ -104,24 +105,25 @@ func FetchTMDBTrending(mediaType, apiKey string) ([]SearchResult, error) {
 	params := url.Values{}
 	params.Set("api_key", apiKey)
 	params.Set("language", "en-US")
-	params.Set("page", "1")
+	params.Set("page", fmt.Sprintf("%d", page))
 	fullURL := endpoint + "?" + params.Encode()
 	resp, err := http.Get(fullURL)
 	if err != nil {
-		return nil, err
+		return nil, 1, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("TMDB API error: %s", resp.Status)
+		return nil, 1, fmt.Errorf("TMDB API error: %s", resp.Status)
 	}
 	var tmdbResp struct {
-		Results []SearchResult `json:"results"`
+		Results    []SearchResult `json:"results"`
+		TotalPages int            `json:"total_pages"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&tmdbResp); err != nil {
-		return nil, err
+		return nil, 1, err
 	}
 	for i := range tmdbResp.Results {
 		tmdbResp.Results[i].MediaType = mediaType
 	}
-	return tmdbResp.Results, nil
+	return tmdbResp.Results, tmdbResp.TotalPages, nil
 } 

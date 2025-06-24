@@ -7,12 +7,20 @@ import(
 	"moviezone/api"
 	"moviezone/models"
 	"io/ioutil"
+	"strconv"
 )
 
 func HandleSearch(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	q := r.URL.Query().Get("q")
 	mediaType := r.URL.Query().Get("type")
+	pageStr := r.URL.Query().Get("page")
+	page := 1
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
 	if q == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(`{"error": "Missing search query parameter 'q'"}`))
@@ -20,7 +28,7 @@ func HandleSearch(w http.ResponseWriter, r *http.Request) {
 	}
 	tmdbKey := os.Getenv("TMDB_API_KEY")
 	omdbKey := os.Getenv("OMDB_API_KEY")
-	results, err := api.SearchTMDB(q, mediaType, tmdbKey)
+	results, totalPages, err := api.SearchTMDB(q, mediaType, tmdbKey, page)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -47,7 +55,11 @@ func HandleSearch(w http.ResponseWriter, r *http.Request) {
 			// If OMDB fails, just skip enrichment for this result
 		}
 	}
-	json.NewEncoder(w).Encode(results)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"results": results,
+		"page": page,
+		"total_pages": totalPages,
+	})
 }
 
 func HandleDetails(w http.ResponseWriter, r *http.Request) {
@@ -93,9 +105,16 @@ func HandleDetails(w http.ResponseWriter, r *http.Request) {
 func HandleTrending(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	mediaType := r.URL.Query().Get("type")
+	pageStr := r.URL.Query().Get("page")
+	page := 1
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
 	tmdbKey := os.Getenv("TMDB_API_KEY")
 	omdbKey := os.Getenv("OMDB_API_KEY")
-	results, err := api.FetchTMDBTrending(mediaType, tmdbKey)
+	results, totalPages, err := api.FetchTMDBTrending(mediaType, tmdbKey, page)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -121,7 +140,11 @@ func HandleTrending(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	json.NewEncoder(w).Encode(results)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"results": results,
+		"page": page,
+		"total_pages": totalPages,
+	})
 }
 
 func HandleGenres(w http.ResponseWriter, r *http.Request) {
