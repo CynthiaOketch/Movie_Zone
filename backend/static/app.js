@@ -22,7 +22,7 @@ function createCard(item, inWatchlist, isWatchlistPage) {
   let btn = '';
   let watchedBadge = '';
   let cardClass = '';
-  let detailsBtn = `<button class="details-btn" data-id="${item.id || item.tmdb_id}" data-type="${item.media_type || item.type}" aria-label="Show details for ${title}">Details</button>`;
+  let detailsBtn = `<button class="details-btn" data-id="${item.id || item.tmdb_id}" data-type="${item.media_type || item.type}" aria-label="Show details for ${title}">+</button>`;
   if (isWatchlistPage) {
     if (item.watched) {
       cardClass = 'watched-card';
@@ -200,52 +200,87 @@ async function setWatched(item, watched) {
 
 // --- Trending and Search logic ---
 
-
 let currentWatchlist = [];
-async function fetchTrending() {
-  showSpinner(trendingResults);
-  try {
-    const [res, wlRes] = await Promise.all([
-      fetch('/api/trending?type=movie'),
-      fetch('/api/watchlist')
-    ]);
-    console.log('Trending fetch response:', res);
-    console.log('Watchlist fetch response:', wlRes);
+let trendingPage = 1;
+let trendingTotalPages = 1;
+let searchPage = 1;
+let searchTotalPages = 1;
 
-    // Check if responses are ok
-    if (!res.ok) {
-      throw new Error('Trending fetch failed: ' + res.status + ' ' + res.statusText);
-    }
-    if (!wlRes.ok) {
-      throw new Error('Watchlist fetch failed: ' + wlRes.status + ' ' + wlRes.statusText);
-    }
+function renderPagination(container, page, totalPages, onPageChange) {
+  const pagination = document.createElement('div');
+  pagination.className = 'pagination-controls';
+  pagination.style.display = 'flex';
+  pagination.style.justifyContent = 'center';
+  pagination.style.alignItems = 'center';
+  pagination.style.gap = '1rem';
+  pagination.style.margin = '1.2rem 0 0.5rem 0';
 
-    const data = await res.json();
-    console.log('Trending data:', data);
+  const prevBtn = document.createElement('button');
+  prevBtn.textContent = 'Prev';
+  prevBtn.disabled = page <= 1;
+  prevBtn.onclick = () => onPageChange(page - 1);
 
-    currentWatchlist = await wlRes.json();
-    console.log('Watchlist data:', currentWatchlist);
+  const nextBtn = document.createElement('button');
+  nextBtn.textContent = 'Next';
+  nextBtn.disabled = page >= totalPages;
+  nextBtn.onclick = () => onPageChange(page + 1);
 
-    renderResults(trendingResults, data, currentWatchlist);
-  } catch (err) {
-    console.error('Error in fetchTrending:', err);
-    showError(trendingResults, 'Error loading trending movies.', fetchTrending);
+  const pageInfo = document.createElement('span');
+  pageInfo.textContent = `Page ${page} of ${totalPages}`;
+
+  pagination.appendChild(prevBtn);
+  pagination.appendChild(pageInfo);
+  pagination.appendChild(nextBtn);
+
+  container.parentNode.insertBefore(pagination, container.nextSibling);
+}
+
+function clearPagination(container) {
+  let next = container.nextSibling;
+  while (next && next.classList && next.classList.contains('pagination-controls')) {
+    const toRemove = next;
+    next = next.nextSibling;
+    toRemove.remove();
   }
 }
 
-
-async function fetchSearch(query, type) {
-  showSpinner(searchResults);
+async function fetchTrending(page = 1) {
+  trendingPage = page;
+  showSpinner(trendingResults);
+  clearPagination(trendingResults);
   try {
     const [res, wlRes] = await Promise.all([
-      fetch(`/api/search?q=${encodeURIComponent(query)}&type=${type}`),
+      fetch(`/api/trending?type=movie&page=${page}`),
+      fetch('/api/watchlist')
+    ]);
+    if (!res.ok) throw new Error('Trending fetch failed: ' + res.status + ' ' + res.statusText);
+    if (!wlRes.ok) throw new Error('Watchlist fetch failed: ' + wlRes.status + ' ' + wlRes.statusText);
+    const data = await res.json();
+    trendingTotalPages = data.total_pages || 1;
+    currentWatchlist = await wlRes.json();
+    renderResults(trendingResults, data.results, currentWatchlist);
+    renderPagination(trendingResults, data.page, trendingTotalPages, fetchTrending);
+  } catch (err) {
+    showError(trendingResults, 'Error loading trending movies.', () => fetchTrending(page));
+  }
+}
+
+async function fetchSearch(query, type, page = 1) {
+  searchPage = page;
+  showSpinner(searchResults);
+  clearPagination(searchResults);
+  try {
+    const [res, wlRes] = await Promise.all([
+      fetch(`/api/search?q=${encodeURIComponent(query)}&type=${type}&page=${page}`),
       fetch('/api/watchlist')
     ]);
     const data = await res.json();
+    searchTotalPages = data.total_pages || 1;
     const watchlist = await wlRes.json();
-    renderResults(searchResults, data, watchlist);
+    renderResults(searchResults, data.results, watchlist);
+    renderPagination(searchResults, data.page, searchTotalPages, p => fetchSearch(query, type, p));
   } catch (err) {
-    showError(searchResults, 'Error loading search results.', () => fetchSearch(query, type));
+    showError(searchResults, 'Error loading search results.', () => fetchSearch(query, type, page));
   }
 }
 
@@ -255,8 +290,15 @@ searchForm.addEventListener('submit', e => {
   const type = searchType.value;
   if (!query) return;
   showSection('search');
-  fetchSearch(query, type);
+  searchPage = 1;
+  fetchSearch(query, type, 1);
 });
+
+navTrending.onclick = () => {
+  showSection('trending');
+  trendingPage = 1;
+  fetchTrending(1);
+};
 
 // On load
 showSection('trending');
@@ -276,11 +318,31 @@ async function showMovieDetails(id, type) {
       <img src="https://image.tmdb.org/t/p/w300${data.poster_path}" alt="${data.title || data.name}">
       <div class="ratings">${(data.omdb_ratings || []).map(r => `${r.Source}: ${r.Value}`).join(' | ')}</div>
       <div class="plot">${data.omdb_plot || data.overview || ''}</div>
+      <button id="trailer-btn" class="trailer-btn">Watch Trailer</button>
+      <div id="trailer-container"></div>
     `;
+    document.getElementById('trailer-btn').onclick = async () => {
+      const trailerContainer = document.getElementById('trailer-container');
+      trailerContainer.innerHTML = '<div class="centered"><div class="spinner"></div></div>';
+      try {
+        const trailerRes = await fetch(`/api/trailer?id=${id}&type=${type}`);
+        const trailerData = await trailerRes.json();
+        if (trailerData.key) {
+          trailerContainer.innerHTML = `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${trailerData.key}" frameborder="0" allowfullscreen></iframe>`;
+        } else {
+          trailerContainer.innerHTML = '<div class="error-message">Trailer not found.</div>';
+        }
+      } catch (err) {
+        trailerContainer.innerHTML = '<div class="error-message">Error loading trailer.</div>';
+      }
+    };
   } catch (err) {
     content.innerHTML = '<div class="error-message">Error loading details.</div>';
   }
 }
-document.getElementById('close-modal').onclick = () => {
-  document.getElementById('details-modal').style.display = 'none';
-}; 
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('close-modal').onclick = () => {
+    document.getElementById('details-modal').style.display = 'none';
+    document.getElementById('details-content').innerHTML = '';
+  };
+}); 

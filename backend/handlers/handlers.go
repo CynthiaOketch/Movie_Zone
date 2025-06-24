@@ -1,9 +1,26 @@
 package handlers
 
-func handleSearch(w http.ResponseWriter, r *http.Request) {
+import(
+	"encoding/json"
+	"net/http"
+	"os"
+	"moviezone/api"
+	"moviezone/models"
+	"io/ioutil"
+	"strconv"
+)
+
+func HandleSearch(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	q := r.URL.Query().Get("q")
 	mediaType := r.URL.Query().Get("type")
+	pageStr := r.URL.Query().Get("page")
+	page := 1
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
 	if q == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(`{"error": "Missing search query parameter 'q'"}`))
@@ -11,7 +28,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 	}
 	tmdbKey := os.Getenv("TMDB_API_KEY")
 	omdbKey := os.Getenv("OMDB_API_KEY")
-	results, err := api.SearchTMDB(q, mediaType, tmdbKey)
+	results, totalPages, err := api.SearchTMDB(q, mediaType, tmdbKey, page)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -38,10 +55,14 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 			// If OMDB fails, just skip enrichment for this result
 		}
 	}
-	json.NewEncoder(w).Encode(results)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"results": results,
+		"page": page,
+		"total_pages": totalPages,
+	})
 }
 
-func handleDetails(w http.ResponseWriter, r *http.Request) {
+func HandleDetails(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	id := r.URL.Query().Get("id")
 	mediaType := r.URL.Query().Get("type")
@@ -81,12 +102,19 @@ func handleDetails(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(details)
 }
 
-func handleTrending(w http.ResponseWriter, r *http.Request) {
+func HandleTrending(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	mediaType := r.URL.Query().Get("type")
+	pageStr := r.URL.Query().Get("page")
+	page := 1
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
 	tmdbKey := os.Getenv("TMDB_API_KEY")
 	omdbKey := os.Getenv("OMDB_API_KEY")
-	results, err := api.FetchTMDBTrending(mediaType, tmdbKey)
+	results, totalPages, err := api.FetchTMDBTrending(mediaType, tmdbKey, page)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -112,16 +140,20 @@ func handleTrending(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	json.NewEncoder(w).Encode(results)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"results": results,
+		"page": page,
+		"total_pages": totalPages,
+	})
 }
 
-func handleGenres(w http.ResponseWriter, r *http.Request) {
+func HandleGenres(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"message": "genres endpoint placeholder"}`))
 }
 
-func handleWatchlist(w http.ResponseWriter, r *http.Request) {
+func HandleWatchlist(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	switch r.Method {
 	case http.MethodGet:
@@ -180,7 +212,7 @@ func handleWatchlist(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleWatchlistWatched(w http.ResponseWriter, r *http.Request) {
+func HandleWatchlistWatched(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -214,4 +246,23 @@ func handleWatchlistWatched(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(map[string]string{"message": "Watch status updated"})
+}
+
+func HandleTrailer(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	id := r.URL.Query().Get("id")
+	mediaType := r.URL.Query().Get("type")
+	if id == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error": "Missing 'id' query parameter"}`))
+		return
+	}
+	tmdbKey := os.Getenv("TMDB_API_KEY")
+	key, err := api.FetchTMDBTrailer(id, mediaType, tmdbKey)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]string{"key": key})
 } 

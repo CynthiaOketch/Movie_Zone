@@ -1,16 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"io/ioutil"
-	"moviezone/api"
+	"moviezone/handlers"
 	"moviezone/models"
 	"github.com/joho/godotenv"
-	"./handlers"
 )
 
 func main() {
@@ -35,12 +32,13 @@ func main() {
 	http.Handle("/", fs)
 
 	// API routes
-	http.HandleFunc("/api/search", handleSearch)
-	http.HandleFunc("/api/details", handleDetails)
-	http.HandleFunc("/api/trending", handleTrending)
-	http.HandleFunc("/api/genres", handleGenres)
-	http.HandleFunc("/api/watchlist", handleWatchlist)
-	http.HandleFunc("/api/watchlist/watched", handleWatchlistWatched)
+	http.HandleFunc("/api/search", handlers.HandleSearch)
+	http.HandleFunc("/api/details", handlers.HandleDetails)
+	http.HandleFunc("/api/trending", handlers.HandleTrending)
+	http.HandleFunc("/api/genres", handlers.HandleGenres)
+	http.HandleFunc("/api/watchlist", handlers.HandleWatchlist)
+	http.HandleFunc("/api/watchlist/watched", handlers.HandleWatchlistWatched)
+	http.HandleFunc("/api/trailer", handlers.HandleTrailer)
 
 	port := os.Getenv("PORT")
 	if port == "" {
