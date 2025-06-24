@@ -318,7 +318,24 @@ async function showMovieDetails(id, type) {
       <img src="https://image.tmdb.org/t/p/w300${data.poster_path}" alt="${data.title || data.name}">
       <div class="ratings">${(data.omdb_ratings || []).map(r => `${r.Source}: ${r.Value}`).join(' | ')}</div>
       <div class="plot">${data.omdb_plot || data.overview || ''}</div>
+      <button id="trailer-btn" class="trailer-btn">Watch Trailer</button>
+      <div id="trailer-container"></div>
     `;
+    document.getElementById('trailer-btn').onclick = async () => {
+      const trailerContainer = document.getElementById('trailer-container');
+      trailerContainer.innerHTML = '<div class="centered"><div class="spinner"></div></div>';
+      try {
+        const trailerRes = await fetch(`/api/trailer?id=${id}&type=${type}`);
+        const trailerData = await trailerRes.json();
+        if (trailerData.key) {
+          trailerContainer.innerHTML = `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${trailerData.key}" frameborder="0" allowfullscreen></iframe>`;
+        } else {
+          trailerContainer.innerHTML = '<div class="error-message">Trailer not found.</div>';
+        }
+      } catch (err) {
+        trailerContainer.innerHTML = '<div class="error-message">Error loading trailer.</div>';
+      }
+    };
   } catch (err) {
     content.innerHTML = '<div class="error-message">Error loading details.</div>';
   }
@@ -326,5 +343,6 @@ async function showMovieDetails(id, type) {
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('close-modal').onclick = () => {
     document.getElementById('details-modal').style.display = 'none';
+    document.getElementById('details-content').innerHTML = '';
   };
 }); 

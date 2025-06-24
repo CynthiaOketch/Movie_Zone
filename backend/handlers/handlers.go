@@ -246,4 +246,23 @@ func HandleWatchlistWatched(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(map[string]string{"message": "Watch status updated"})
+}
+
+func HandleTrailer(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	id := r.URL.Query().Get("id")
+	mediaType := r.URL.Query().Get("type")
+	if id == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error": "Missing 'id' query parameter"}`))
+		return
+	}
+	tmdbKey := os.Getenv("TMDB_API_KEY")
+	key, err := api.FetchTMDBTrailer(id, mediaType, tmdbKey)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]string{"key": key})
 } 

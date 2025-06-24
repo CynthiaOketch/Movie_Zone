@@ -38,6 +38,7 @@ func main() {
 	http.HandleFunc("/api/genres", handlers.HandleGenres)
 	http.HandleFunc("/api/watchlist", handlers.HandleWatchlist)
 	http.HandleFunc("/api/watchlist/watched", handlers.HandleWatchlistWatched)
+	http.HandleFunc("/api/trailer", handlers.HandleTrailer)
 
 	port := os.Getenv("PORT")
 	if port == "" {
