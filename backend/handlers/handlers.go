@@ -1,6 +1,15 @@
 package handlers
 
-func handleSearch(w http.ResponseWriter, r *http.Request) {
+import(
+	"encoding/json"
+	"net/http"
+	"os"
+	"moviezone/api"
+	"moviezone/models"
+	"io/ioutil"
+)
+
+func HandleSearch(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	q := r.URL.Query().Get("q")
 	mediaType := r.URL.Query().Get("type")
@@ -41,7 +50,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(results)
 }
 
-func handleDetails(w http.ResponseWriter, r *http.Request) {
+func HandleDetails(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	id := r.URL.Query().Get("id")
 	mediaType := r.URL.Query().Get("type")
@@ -81,7 +90,7 @@ func handleDetails(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(details)
 }
 
-func handleTrending(w http.ResponseWriter, r *http.Request) {
+func HandleTrending(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	mediaType := r.URL.Query().Get("type")
 	tmdbKey := os.Getenv("TMDB_API_KEY")
@@ -115,13 +124,13 @@ func handleTrending(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(results)
 }
 
-func handleGenres(w http.ResponseWriter, r *http.Request) {
+func HandleGenres(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"message": "genres endpoint placeholder"}`))
 }
 
-func handleWatchlist(w http.ResponseWriter, r *http.Request) {
+func HandleWatchlist(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	switch r.Method {
 	case http.MethodGet:
@@ -180,7 +189,7 @@ func handleWatchlist(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleWatchlistWatched(w http.ResponseWriter, r *http.Request) {
+func HandleWatchlistWatched(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)

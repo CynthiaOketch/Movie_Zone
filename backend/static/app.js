@@ -22,7 +22,7 @@ function createCard(item, inWatchlist, isWatchlistPage) {
   let btn = '';
   let watchedBadge = '';
   let cardClass = '';
-  let detailsBtn = `<button class="details-btn" data-id="${item.id || item.tmdb_id}" data-type="${item.media_type || item.type}" aria-label="Show details for ${title}">Details</button>`;
+  let detailsBtn = `<button class="details-btn" data-id="${item.id || item.tmdb_id}" data-type="${item.media_type || item.type}" aria-label="Show details for ${title}">+</button>`;
   if (isWatchlistPage) {
     if (item.watched) {
       cardClass = 'watched-card';
@@ -281,6 +281,8 @@ async function showMovieDetails(id, type) {
     content.innerHTML = '<div class="error-message">Error loading details.</div>';
   }
 }
-document.getElementById('close-modal').onclick = () => {
-  document.getElementById('details-modal').style.display = 'none';
-}; 
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('close-modal').onclick = () => {
+    document.getElementById('details-modal').style.display = 'none';
+  };
+}); 
