@@ -16,7 +16,7 @@ A comprehensive entertainment discovery platform where users can search for movi
 1. Make sure you have Go installed (version 1.18+ recommended).
 2. Clone the repository and navigate to the `backend` directory:
    ```bash
-   git clone <repo-url>
+   git clone https://github.com/CynthiaOketch/Movie_Zone.git
    cd Movie_Zone/backend
    ```
 3. Install dependencies:
