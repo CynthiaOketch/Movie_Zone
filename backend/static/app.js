@@ -232,3 +232,55 @@ async function fetchTrending() {
     showError(trendingResults, 'Error loading trending movies.', fetchTrending);
   }
 }
+
+
+async function fetchSearch(query, type) {
+  showSpinner(searchResults);
+  try {
+    const [res, wlRes] = await Promise.all([
+      fetch(`/api/search?q=${encodeURIComponent(query)}&type=${type}`),
+      fetch('/api/watchlist')
+    ]);
+    const data = await res.json();
+    const watchlist = await wlRes.json();
+    renderResults(searchResults, data, watchlist);
+  } catch (err) {
+    showError(searchResults, 'Error loading search results.', () => fetchSearch(query, type));
+  }
+}
+
+searchForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const query = searchInput.value.trim();
+  const type = searchType.value;
+  if (!query) return;
+  showSection('search');
+  fetchSearch(query, type);
+});
+
+// On load
+showSection('trending');
+fetchTrending(); 
+fetchTrending(); 
+
+async function showMovieDetails(id, type) {
+  const modal = document.getElementById('details-modal');
+  const content = document.getElementById('details-content');
+  content.innerHTML = '<div class="centered"><div class="spinner"></div></div>';
+  modal.style.display = 'flex';
+  try {
+    const res = await fetch(`/api/details?id=${id}&type=${type}`);
+    const data = await res.json();
+    content.innerHTML = `
+      <h2>${data.title || data.name}</h2>
+      <img src="https://image.tmdb.org/t/p/w300${data.poster_path}" alt="${data.title || data.name}">
+      <div class="ratings">${(data.omdb_ratings || []).map(r => `${r.Source}: ${r.Value}`).join(' | ')}</div>
+      <div class="plot">${data.omdb_plot || data.overview || ''}</div>
+    `;
+  } catch (err) {
+    content.innerHTML = '<div class="error-message">Error loading details.</div>';
+  }
+}
+document.getElementById('close-modal').onclick = () => {
+  document.getElementById('details-modal').style.display = 'none';
+}; 
