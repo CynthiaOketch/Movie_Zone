@@ -10,6 +10,7 @@ import (
 	"moviezone/api"
 	"moviezone/models"
 	"github.com/joho/godotenv"
+	"./handlers"
 )
 
 func main() {
