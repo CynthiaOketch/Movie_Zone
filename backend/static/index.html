@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Movie Zone</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Movie Zone</h1>
+    <nav>
+      <button id="nav-trending" class="nav-btn active" aria-label="Show trending movies">Trending</button>
+      <button id="nav-search" class="nav-btn" aria-label="Show search">Search</button>
+      <button id="nav-watchlist" class="nav-btn" aria-label="Show watchlist">Watchlist</button>
+    </nav>
+    <form id="search-form" style="display:none;" aria-label="Search for movies or TV shows">
+      <input type="text" id="search-input" placeholder="Search for movies or TV shows..." autocomplete="off" aria-label="Search input">
+      <select id="search-type" aria-label="Select type">
+        <option value="movie">Movies</option>
+        <option value="tv">TV Shows</option>
+      </select>
+      <button type="submit" aria-label="Submit search">Search</button>
+    </form>
+  </header>
+  <main>
+    <section id="trending-section">
+      <h2>Trending</h2>
+      <div id="trending-results" class="results-grid"></div>
+    </section>
+    <section id="search-section" style="display:none;">
+      <h2>Search Results</h2>
+      <div id="search-results" class="results-grid"></div>
+    </section>
+    <section id="watchlist-section" style="display:none;">
+      <h2>Your Watchlist</h2>
+      <div id="watchlist-results" class="results-grid"></div>
+    </section>
+  </main>
+  <footer>
+    <p>&copy; 2024 Movie Zone</p>
+  </footer>
+  <script src="app.js"></script>
+
+  <div id="details-modal" class="modal" style="display:none;">
+    <div class="modal-content" id="details-content"></div>
+    <button id="close-modal" class="close-btn" aria-label="Close details">Close</button>
+  </div>
+</body>
+</html> 
